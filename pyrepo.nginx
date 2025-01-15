@@ -1,0 +1,5 @@
+location /simple/ {
+    if ($http_accept = application/vnd.pypi.simple.v1+json) {
+        index index.json
+    }
+}

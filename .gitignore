@@ -1,0 +1,10 @@
+# Compiled python
+__pycache__/
+*.py[co]
+
+# Development files
+.vscode/
+.idea/
+
+# Testing artifacts
+.coverage

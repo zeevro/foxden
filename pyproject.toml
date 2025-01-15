@@ -1,0 +1,132 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "foxden"
+version = "0.0.1a1"
+authors = [{ name = "Zeev Rotshtein", email = "zeevro@gmail.com" }]
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: System :: Archiving :: Packaging",
+    "Topic :: System :: Software Distribution",
+    "Typing :: Typed",
+]
+dependencies = [
+    "distlib",
+    "fastapi[standard]",
+    "msgspec",
+    "packaging",
+]
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.ruff]
+line-length = 150
+output-format = "concise"
+include = ["src/**/*.py"] # TODO: Remove
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "W191", # tab-indentation - conflicts with formatter
+    "E111", # indentation-with-invalid-multiple - conflicts with formatter
+    "E114", # indentation-with-invalid-multiple-comment - conflicts with formatter
+    "E117", # over-indented - conflicts with formatter
+    "D206", # indent-with-spaces - conflicts with formatter
+    "D300", # triple-single-quotes - conflicts with formatter
+    "Q000", # bad-quotes-inline-string - conflicts with formatter
+    "Q001", # bad-quotes-multiline-string - conflicts with formatter
+    "Q002", # bad-quotes-docstring - conflicts with formatter
+    "Q003", # avoidable-escaped-quote - conflicts with formatter
+    "COM812", # missing-trailing-comma - conflicts with formatter
+    "COM819", # prohibited-trailing-comma - conflicts with formatter
+    "ISC001", # single-line-implicit-string-concatenation - conflicts with formatter
+    "ISC002", # multi-line-implicit-string-concatenation - conflicts with formatter
+    "E501", # line-too-long - see formatter documentation
+
+    # "C90", # linter: mccabe
+    "D", # linter: pydocstyle
+    "FBT", # linter: flake8-boolean-trap
+    # "EM", # linter: flake8-errmsg
+    # "SLF", # linter: flake8-self
+    # "FIX", # linter: flake8-fixme
+
+    # "E741", # ambiguous-variable-name
+    # "ANN401", # any-type
+    # "B905", # zip-without-explicit-strict
+    # "G001", # logging-string-format
+    # "G002", # logging-percent-format
+    # "G003", # logging-string-concat
+    # "G004", # logging-f-string
+    # "TD002", # missing-todo-author
+    # "TD003", # missing-todo-link
+    # "PLR0904", # too-many-public-methods
+    # "PLR0911", # too-many-return-statements
+    # "PLR0912", # too-many-branches
+    # "PLR0913", # too-many-arguments
+    # "PLR0914", # too-many-locals
+    # "PLR0915", # too-many-statements
+    # "PLR0916", # too-many-boolean-expressions
+    # "PLR0917", # too-many-positional-arguments
+    # "PLR2004", # magic-value-comparison
+    # "TRY003", # raise-vanilla-args
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+lines-after-imports = 2
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "ANN", # linter: flake8-annotations
+    "S101", # assert
+]
+"scripts/*" = [
+    "INP001", # implicit-namespace-package
+]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+strict = true
+files = ["src/**/*.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/"]
+
+[tool.coverage.report]
+exclude_also = [
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if False and",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+skip_empty = true
