@@ -25,6 +25,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    "annotated-types",
     "distlib",
     "fastapi[standard]",
     "msgspec",
@@ -65,11 +66,11 @@ ignore = [
     # "C90", # linter: mccabe
     "D", # linter: pydocstyle
     "FBT", # linter: flake8-boolean-trap
-    # "EM", # linter: flake8-errmsg
+    "EM", # linter: flake8-errmsg
     # "SLF", # linter: flake8-self
     # "FIX", # linter: flake8-fixme
 
-    # "E741", # ambiguous-variable-name
+    "E741", # ambiguous-variable-name
     # "ANN401", # any-type
     # "B905", # zip-without-explicit-strict
     # "G001", # logging-string-format
@@ -87,7 +88,7 @@ ignore = [
     # "PLR0916", # too-many-boolean-expressions
     # "PLR0917", # too-many-positional-arguments
     # "PLR2004", # magic-value-comparison
-    # "TRY003", # raise-vanilla-args
+    "TRY003", # raise-vanilla-args
 ]
 
 [tool.ruff.lint.isort]

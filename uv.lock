@@ -171,6 +171,7 @@ name = "foxden"
 version = "0.0.1a1"
 source = { editable = "." }
 dependencies = [
+    { name = "annotated-types" },
     { name = "distlib" },
     { name = "fastapi", extra = ["standard"] },
     { name = "msgspec" },
@@ -186,6 +187,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "annotated-types" },
     { name = "distlib" },
     { name = "fastapi", extras = ["standard"] },
     { name = "msgspec" },

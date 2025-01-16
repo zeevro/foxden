@@ -220,7 +220,7 @@ def generate_root_index(package_names: Iterable[str], fmt: IndexFormat = 'html')
     raise ValueError(f'Unsupported format: {fmt}')
 
 
-def generate_package_index(package_name: str, links: Iterable[Link], fmt: IndexFormat = 'html') -> str:
+def generate_project_index(package_name: str, links: Iterable[Link], fmt: IndexFormat = 'html') -> str:
     if fmt == 'html':
         return HTML_TEMPLATE.format(title=f'Links for {package_name}', content='\n'.join(f'{l.html()}<br/>' for l in links))
     if fmt == 'json':
@@ -314,7 +314,7 @@ def main() -> None:
             package_index_path = args.dest / package_name / f'index.{args.index_format}'
             logger.debug(f'Writing {package_index_path}')
             old_links = PackageIndexParser.get_links(package_index_path.read_text()) if package_index_path.exists() else []
-            package_index_path.write_text(generate_package_index(package_name, [*old_links, *new_links], fmt=args.index_format))
+            package_index_path.write_text(generate_project_index(package_name, [*old_links, *new_links], fmt=args.index_format))
 
         root_index_path = args.dest / f'index.{args.index_format}'
         if not (root_index_path.exists() and set(RootIndexParser.get_links(root_index_path.read_text())).issuperset(package_links)):
@@ -340,7 +340,7 @@ def main() -> None:
             logger.error('No updates needed')
             raise SystemExit(1)
         logger.debug(f'Writing {package_index_path}')
-        package_index_path.write_text(generate_package_index(args.package, links, fmt=args.index_format))
+        package_index_path.write_text(generate_project_index(args.package, links, fmt=args.index_format))
 
     logger.info('Done')
 

@@ -16,7 +16,7 @@ class Digest:
         return {self.alg: self.digest}
 
     @classmethod
-    def from_attribute(cls, attr: str) -> Self:
+    def from_str(cls, attr: str) -> Self:
         return cls(*attr.split('=', 1))
 
     @classmethod
@@ -31,44 +31,57 @@ class Digest:
 @dataclasses.dataclass
 class DistFile:
     filename: str
-    file_hash: Digest
-    metadata_hash: Digest | None = None
+    digest: Digest
     requires_python: str | None = None
+    metadata_digest: Digest | None = None
     yanked: bool = False
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return (self.filename, self.digest) == (other.filename, other.digest)
+
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.filename > other.filename
+
+    def __gte__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.filename >= other.filename
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.filename < other.filename
+
+    def __lte__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.filename <= other.filename
+
     def html(self) -> str:
-        attrs = {'href': f'{self.filename}#{self.file_hash}'}
+        attrs = {'href': f'{self.filename}#{self.digest}'}
         if self.requires_python:
             attrs['data-requires-python'] = html.escape(self.requires_python)
-        if self.metadata_hash:
-            attrs['data-core-metadata'] = attrs['data-dist-info-metadata'] = str(self.metadata_hash)
+        if self.metadata_digest:
+            attrs['data-core-metadata'] = attrs['data-dist-info-metadata'] = str(self.metadata_digest)
         if self.yanked:
             attrs['data-yanked'] = '1'
         attrs_html = ' '.join(f'{k}="{v}"' for k, v in attrs.items())
         return f'<a {attrs_html}>{self.filename}</a>'
 
-    @classmethod
-    def from_html(cls, attrs: dict[str, str]) -> Self:
-        path, file_hash = attrs['href'].split('#')
-        metadata_hash_attr = attrs.get('data-core-metadata') or attrs.get('data-dist-info-metadata')
-        return cls(
-            path.rstrip('/').rsplit('/', 1)[-1],
-            Digest.from_attribute(file_hash),
-            Digest.from_attribute(metadata_hash_attr) if metadata_hash_attr else None,
-            attrs.get('data-requires-python'),
-            'data-yanked' in attrs,
-        )
-
     def json(self) -> dict[str, Any]:
         ret = {
             'filename': self.filename,
             'url': self.filename,
-            'hashes': self.file_hash.json(),
+            'hashes': self.digest.json(),
         }
         if self.requires_python:
             ret['requires-python'] = self.requires_python
-        if self.metadata_hash:
-            ret['core-metadata'] = ret['dist-info-metadata'] = self.metadata_hash.json()
+        if self.metadata_digest:
+            ret['core-metadata'] = ret['dist-info-metadata'] = self.metadata_digest.json()
         if self.yanked:
             ret['yanked'] = True
         return ret

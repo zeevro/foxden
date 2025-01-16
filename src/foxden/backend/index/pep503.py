@@ -1,7 +1,11 @@
+import contextlib
 import html.parser
+from typing import Literal, overload
 
 from foxden.backend.index import IndexBackend, StaticFilesIndexBackendMixin
-from foxden.models import DistFile
+from foxden.models import Digest, DistFile
+from foxden.utils import DuplicateValueError, insert_sorted_nodup
+from foxden.utils.pep503 import generate_project_index, generate_root_index
 
 
 class IndexParser[T](html.parser.HTMLParser):
@@ -29,17 +33,47 @@ class RootIndexParser(IndexParser[str]):
         return attrs['href'].removesuffix('/')
 
 
-class PackageIndexParser(IndexParser[DistFile]):
+class ProjectIndexParser(IndexParser[DistFile]):
     def _get_link(self, attrs: dict[str, str]) -> DistFile:
-        return DistFile.from_html(attrs)
+        path, digest = attrs['href'].split('#', 1)
+        metadata_digest = attrs.get('data-core-metadata') or attrs.get('data-dist-info-metadata')
+        return DistFile(
+            path.rstrip('/').rsplit('/', 1)[-1],
+            Digest.from_str(digest),
+            attrs.get('data-requires-python'),
+            Digest.from_str(metadata_digest) if metadata_digest else None,
+            'data-yanked' in attrs,
+        )
 
 
 class Pep503IndexBackend(IndexBackend, StaticFilesIndexBackendMixin):
-    def list_projects(self) -> list[str]:
-        self.dir_path.joinpath('index.html').read_text()
+    @overload
+    def _list_index(self, project: Literal[''] = '') -> list[str]: ...
 
-    def files(self, project: str) -> list[DistFile]:
-        return super().files(project)
+    @overload
+    def _list_index(self, project: str) -> list[DistFile]: ...
 
-    def set_yanked(self, filename: str, yanked: bool = True) -> None:
-        return super().set_yanked(filename, yanked)
+    def _list_index(self, project: str = '') -> list[str] | list[DistFile]:
+        parser = ProjectIndexParser if project else RootIndexParser
+        try:
+            return parser.get_links(self.index_path(project).read_text())
+        except FileNotFoundError:
+            return []
+
+    list_projects = _list_index
+    files = _list_index
+
+    def new_file(self, project: str, file: DistFile) -> None:
+        project_files = self.files(project)
+        try:
+            insert_sorted_nodup(project_files, file)
+        except DuplicateValueError:
+            raise FileExistsError(f'{file.filename} already exists') from None
+        self.index_path(project).write_text(generate_project_index(project, project_files))
+        projects = self.list_projects()
+        with contextlib.suppress(DuplicateValueError):
+            insert_sorted_nodup(projects, project)
+            self.index_path().write_text(generate_root_index(projects))
+
+    def set_yanked(self, project: str, filename: str, yanked: bool = True) -> None:
+        raise NotImplementedError
