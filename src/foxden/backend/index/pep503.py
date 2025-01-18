@@ -69,7 +69,9 @@ class Pep503IndexBackend(IndexBackend, StaticFilesIndexBackendMixin):
             insert_sorted_nodup(project_files, file)
         except DuplicateValueError:
             raise FileExistsError(f'{file.filename} already exists') from None
-        self.index_path(project).write_text(generate_project_index(project, project_files))
+        project_index_path = self.index_path(project)
+        project_index_path.parent.mkdir(parents=True, exist_ok=True)
+        project_index_path.write_text(generate_project_index(project, project_files))
         projects = self.list_projects()
         with contextlib.suppress(DuplicateValueError):
             insert_sorted_nodup(projects, project)

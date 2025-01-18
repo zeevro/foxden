@@ -101,12 +101,12 @@ def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCred
 
     storage_path = pathlib.Path('simple')
 
-    project_path = storage_path / project
-    project_path.mkdir(parents=True, exist_ok=True)
-
-    file_path = project_path / distfile.filename
+    file_path = storage_path / distfile.filename
     if file_path.exists():
         raise HTTPException(400, f'File already exists: {distfile.filename}')
+
+    storage_path.mkdir(parents=True, exist_ok=True)
+    storage_path.joinpath('.gitignore').write_text('**\n')
 
     # Write file
     req.content.file.seek(0)
@@ -121,4 +121,4 @@ def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCred
     from foxden.backend.index.pep503 import Pep503IndexBackend
 
     backend = Pep503IndexBackend(storage_path)
-    backend.new_file(req.name, distfile)
+    backend.new_file(project, distfile)

@@ -1,7 +1,6 @@
 import dataclasses
 import hashlib
-import html.parser
-from typing import Any, Self
+from typing import Self
 
 
 @dataclasses.dataclass

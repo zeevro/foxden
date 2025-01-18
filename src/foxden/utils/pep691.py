@@ -46,10 +46,10 @@ class ProjectFile(Struct, rename=_kebab):
         )
 
     @classmethod
-    def from_distfile(cls, distfile: DistFile, files_location: str | None = None) -> Self:
+    def from_distfile(cls, distfile: DistFile, url_prefix: str = '') -> Self:
         return cls(
             distfile.filename,
-            distfile.filename if files_location is None else f'{files_location}/{distfile.filename}',
+            f'{url_prefix}{distfile.filename}',
             distfile.digest.json(),
             distfile.requires_python,
             distfile.metadata_digest.json() if distfile.metadata_digest else None,
@@ -67,5 +67,5 @@ def generate_root_index(projects: Iterable[str]) -> bytes:
     return msgspec.json.encode(RootIndex([Project(p) for p in projects]))
 
 
-def generate_project_index(project: str, files: Iterable[DistFile]) -> bytes:
-    return msgspec.json.encode(ProjectIndex(project, [ProjectFile.from_distfile(f) for f in files]))
+def generate_project_index(project: str, files: Iterable[DistFile], url_prefix: str = '') -> bytes:
+    return msgspec.json.encode(ProjectIndex(project, [ProjectFile.from_distfile(f, url_prefix) for f in files]))
