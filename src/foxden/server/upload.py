@@ -1,8 +1,6 @@
 import contextlib
 from functools import cached_property
-import hashlib
 import pathlib
-from pprint import pprint
 import shutil
 import tarfile
 from typing import TYPE_CHECKING, Annotated, Literal
@@ -87,33 +85,40 @@ else:
             return self.root
 
 
-
 @app.post('/')
 def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCredentials, Depends(security)]) -> None:
     if creds.username != '__token__':
         raise HTTPException(401)
+
+    project = canonicalize_name(req.name)
+
     distfile = DistFile(
         req.content.filename,
         req.digest,
         str(getattr(req.metadata, 'requires_python', '')) or None,
-        Digest.from_bytes(req.metadata_bytes) if req.metadata_bytes else None
+        Digest.from_bytes(req.metadata_bytes) if req.metadata_bytes else None,
     )
-    req.content.file.seek(0)
 
     storage_path = pathlib.Path('simple')
 
-    project_path = storage_path / req.name
+    project_path = storage_path / project
     project_path.mkdir(parents=True, exist_ok=True)
 
+    file_path = project_path / distfile.filename
+    if file_path.exists():
+        raise HTTPException(400, f'File already exists: {distfile.filename}')
+
     # Write file
-    with project_path.joinpath(distfile.filename).open('wb') as f:
+    req.content.file.seek(0)
+    with file_path.open('wb') as f:
         shutil.copyfileobj(req.content.file, f)
 
     # Write metadata
     if req.metadata_bytes:
-        project_path.joinpath(f'{distfile.filename}.metadata').write_bytes(req.metadata_bytes)
+        file_path.with_name(f'{file_path.name}.metadata').write_bytes(req.metadata_bytes)
 
     # Add to index
     from foxden.backend.index.pep503 import Pep503IndexBackend
+
     backend = Pep503IndexBackend(storage_path)
     backend.new_file(req.name, distfile)
