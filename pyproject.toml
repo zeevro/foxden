@@ -26,14 +26,17 @@ classifiers = [
 ]
 dependencies = [
     "annotated-types",
-    "distlib",
-    "fastapi[standard]",
     "msgspec",
     "packaging",
 ]
 
+[project.optional-dependencies]
+server = ["fastapi[standard]"]
+trusted = ["foxden[server]", "pyjwt[crypto]"]
+
 [dependency-groups]
 dev = [
+    "foxden[trusted]",
     "mypy",
     "pytest",
     "pytest-cov",
