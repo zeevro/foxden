@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, RootModel, model_validator
 
 from foxden.models import Digest, DistFile
 from foxden.server import app, security
+from foxden.server.oidc import verify_oidc_token
 
 
 class UploadRequestBase(BaseModel):
@@ -90,6 +91,8 @@ else:
 @app.post('/')
 def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCredentials, Depends(security)]) -> None:
     if creds.username != '__token__':
+        raise HTTPException(401)
+    if not verify_oidc_token(creds.password):
         raise HTTPException(401)
 
     project = canonicalize_name(req.name)
