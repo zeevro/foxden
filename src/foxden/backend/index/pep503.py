@@ -1,6 +1,5 @@
 import contextlib
 import html.parser
-from typing import Literal, overload
 
 from foxden.backend.index import IndexBackend, StaticFilesIndexBackendMixin
 from foxden.models import Digest, DistFile
@@ -47,21 +46,17 @@ class ProjectIndexParser(IndexParser[DistFile]):
 
 
 class Pep503IndexBackend(IndexBackend, StaticFilesIndexBackendMixin):
-    @overload
-    def _list_index(self, project: Literal[''] = '') -> list[str]: ...
-
-    @overload
-    def _list_index(self, project: str) -> list[DistFile]: ...
-
-    def _list_index(self, project: str = '') -> list[str] | list[DistFile]:
-        parser = ProjectIndexParser if project else RootIndexParser
+    def list_projects(self) -> list[str]:
         try:
-            return parser.get_links(self.index_path(project).read_text())
+            return RootIndexParser.get_links(self.index_path().read_text())
         except FileNotFoundError:
             return []
 
-    list_projects = _list_index
-    files = _list_index
+    def files(self, project: str) -> list[DistFile]:
+        try:
+            return ProjectIndexParser.get_links(self.index_path(project).read_text())
+        except FileNotFoundError:
+            return []
 
     def new_file(self, project: str, file: DistFile) -> None:
         project_files = self.files(project)

@@ -1,0 +1,70 @@
+name: Release
+
+run-name: ${{ github.workflow }} ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump-version:
+        description: Version bump type
+        required: true
+        type: choice
+        options: [none, a, b, rc, micro, minor, major]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+      url: https://pypi.org/project/foxden/
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Bump version
+        run: |
+          uvx --from bump-pep621 pyproject-bump ${{ inputs.bump-version }}
+          uv lock
+          version=$(uvx tomlq -r .project.version pyproject.toml)
+          git config user.name ${{ github.actor }}
+          git config user.email ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+          git commit -am "Bump version to $version"
+          git push
+        if: inputs.bump-version != 'none'
+
+      - name: Get package version information
+        id: version-info
+        run: |
+          uv run --with hatchling - <<EOF >>$GITHUB_OUTPUT
+          import json
+          from hatchling.metadata.core import ProjectMetadata
+          from packaging.version import parse
+          v = ProjectMetadata('', None).version
+          p = parse(v)
+          print(f'version={v}')
+          if not p.is_devrelease:
+              print(f'tag=v{v}')
+              if p.is_prerelease:
+                  print('prerelease=yes')
+          EOF
+
+      - name: Build wheel
+        run: uv build --wheel
+
+      - name: Create tag
+        run: |
+          git tag ${{ steps.version-info.outputs.tag }}
+          git push origin tag ${{ steps.version-info.outputs.tag }}
+        if: steps.version-info.outputs.tag
+
+      - name: Upload to Nexus
+        run: uv publish
+
+      - name: Create release
+        run: gh release create ${{ steps.version-info.outputs.tag }} ./dist/* --verify-tag --generate-notes ${{ steps.version-info.outputs.prerelease && '--prerelease' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        if: steps.version-info.outputs.tag

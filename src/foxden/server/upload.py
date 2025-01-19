@@ -27,6 +27,8 @@ class UploadRequestBase(BaseModel):
 
     @cached_property
     def metadata_path(self) -> str:
+        if not self.content.filename:
+            raise ValueError('No filename')
         if self.filetype == 'bdist_wheel':
             name, version, _ = self.content.filename.split('-', 2)
             return f'{name}-{version}.dist-info/METADATA'
@@ -41,7 +43,7 @@ class UploadRequestBase(BaseModel):
             return zipfile.ZipFile(self.content.file).open(self.metadata_path).read()
         if self.filetype == 'sdist':
             with contextlib.suppress(Exception):
-                return tarfile.open(fileobj=self.content.file).extractfile(self.metadata_path).read()
+                return tarfile.open(fileobj=self.content.file).extractfile(self.metadata_path).read()  # type: ignore[union-attr]
         return None
 
     @cached_property
@@ -91,6 +93,9 @@ def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCred
         raise HTTPException(401)
 
     project = canonicalize_name(req.name)
+
+    if not req.content.filename:
+        raise HTTPException(400, 'content filename cannot be empty')
 
     distfile = DistFile(
         req.content.filename,

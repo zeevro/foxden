@@ -45,7 +45,7 @@ class DistFile:
             return NotImplemented
         return self.filename > other.filename
 
-    def __gte__(self, other: object) -> bool:
+    def __ge__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
             return NotImplemented
         return self.filename >= other.filename
@@ -55,7 +55,7 @@ class DistFile:
             return NotImplemented
         return self.filename < other.filename
 
-    def __lte__(self, other: object) -> bool:
+    def __le__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
             return NotImplemented
         return self.filename <= other.filename

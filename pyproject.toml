@@ -42,7 +42,7 @@ dev = [
 [tool.ruff]
 line-length = 150
 output-format = "concise"
-include = ["src/**/*.py"] # TODO: Remove
+exclude = ["scripts/**"] # TODO: Remove
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -73,12 +73,13 @@ ignore = [
     "E741", # ambiguous-variable-name
     # "ANN401", # any-type
     # "B905", # zip-without-explicit-strict
+    "A005", # stdlib-module-shadowing
     # "G001", # logging-string-format
     # "G002", # logging-percent-format
     # "G003", # logging-string-concat
     # "G004", # logging-f-string
-    # "TD002", # missing-todo-author
-    # "TD003", # missing-todo-link
+    "TD002", # missing-todo-author
+    "TD003", # missing-todo-link
     # "PLR0904", # too-many-public-methods
     # "PLR0911", # too-many-return-statements
     # "PLR0912", # too-many-branches

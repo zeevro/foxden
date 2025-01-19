@@ -24,10 +24,11 @@ class IndexResponseModule(Protocol):
 
 
 def resp_format(accept_hdr: str | None) -> Literal['html', 'json']:
-    with contextlib.suppress(Exception):
-        for i in accepted_types(accept_hdr):
-            if i.split(';', 1)[0] in 'application/vnd.pypi.simple.v1+json':
-                return 'json'
+    if accept_hdr:
+        with contextlib.suppress(Exception):
+            for i in accepted_types(accept_hdr):
+                if i.split(';', 1)[0] in 'application/vnd.pypi.simple.v1+json':
+                    return 'json'
     return 'html'
 
 
