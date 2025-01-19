@@ -1,11 +1,4 @@
-from foxden.server import app, simple, upload  # noqa: F401
-
-
-try:
-    import jwt
-    import foxden.server.oidc
-except ImportError:
-    pass
+from foxden.server import app, oidc, simple, upload  # noqa: F401
 
 
 __all__ = ['app']

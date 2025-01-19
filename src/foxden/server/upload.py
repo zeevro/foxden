@@ -1,5 +1,6 @@
 import contextlib
 from functools import cached_property
+import logging
 import pathlib
 import shutil
 import tarfile
@@ -8,13 +9,17 @@ import zipfile
 
 from fastapi import Depends, Form, HTTPException, UploadFile
 from fastapi.security import HTTPBasicCredentials
+import jwt
 from packaging.metadata import Metadata
 from packaging.utils import canonicalize_name
 from pydantic import BaseModel, Field, RootModel, model_validator
 
+from foxden.config import settings
 from foxden.models import Digest, DistFile
 from foxden.server import app, security
-from foxden.server.oidc import verify_oidc_token
+
+
+logger = logging.getLogger(__name__)
 
 
 class UploadRequestBase(BaseModel):
@@ -92,8 +97,11 @@ else:
 def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCredentials, Depends(security)]) -> None:
     if creds.username != '__token__':
         raise HTTPException(401)
-    if not verify_oidc_token(creds.password):
-        raise HTTPException(401)
+    try:
+        jwt.decode(creds.password, key=settings.jwk, audience=['oidc', 'login'])
+    except jwt.InvalidTokenError:
+        logger.warning('Token validation failed', exc_info=True)
+        raise HTTPException(401) from None
 
     project = canonicalize_name(req.name)
 

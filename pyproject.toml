@@ -28,6 +28,8 @@ dependencies = [
     "annotated-types",
     "msgspec",
     "packaging",
+    "pyjwt",
+    "python-dotenv",
 ]
 
 [project.optional-dependencies]
