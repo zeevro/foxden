@@ -18,7 +18,7 @@ repos:
     rev: v1.14.1
     hooks:
       - id: mypy
-        additional_dependencies: [fastapi, msgspec]
+        additional_dependencies: [fastapi, msgspec, pyjwt]
         files: ^src/
 
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py

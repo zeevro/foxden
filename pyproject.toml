@@ -26,6 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "annotated-types",
+    "hishel",
     "msgspec",
     "packaging",
     "pyjwt",
