@@ -1,7 +1,6 @@
 import contextlib
 from functools import cached_property
 import logging
-import pathlib
 import shutil
 import tarfile
 from typing import TYPE_CHECKING, Annotated, Literal
@@ -115,14 +114,19 @@ def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCred
         Digest.from_bytes(req.metadata_bytes) if req.metadata_bytes else None,
     )
 
-    storage_path = pathlib.Path('simple')
+    if not settings.storage_path:
+        raise NotImplementedError
 
-    file_path = storage_path / distfile.filename
-    if file_path.exists():
-        raise HTTPException(400, f'File already exists: {distfile.filename}')
+    for pdf in settings.index_backend.files(project):
+        if pdf.filename == distfile.filename:
+            if pdf.digest == distfile.digest:
+                return
+            raise HTTPException(400, f'File already exists ({pdf.filename!r}, with {pdf.digest.alg} hash {pdf.digest.digest}).')
 
-    storage_path.mkdir(parents=True, exist_ok=True)
-    storage_path.joinpath('.gitignore').write_text('**\n')
+    file_path = settings.storage_path / distfile.filename
+
+    settings.storage_path.mkdir(parents=True, exist_ok=True)
+    settings.storage_path.joinpath('.gitignore').write_text('**\n')
 
     # Write file
     req.content.file.seek(0)
@@ -133,8 +137,4 @@ def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCred
     if req.metadata_bytes:
         file_path.with_name(f'{file_path.name}.metadata').write_bytes(req.metadata_bytes)
 
-    # Add to index
-    from foxden.backend.index.pep503 import Pep503IndexBackend
-
-    backend = Pep503IndexBackend(storage_path)
-    backend.new_file(project, distfile)
+    settings.index_backend.new_file(project, distfile)

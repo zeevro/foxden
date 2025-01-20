@@ -27,7 +27,7 @@ class RootIndex(IndexBase):
     projects: list[Project]
 
 
-class ProjectFile(Struct, rename=_kebab):
+class ProjectFile(Struct, rename=_kebab, omit_defaults=True):
     filename: str
     url: str
     hashes: dict[str, str] = field(default_factory=dict)

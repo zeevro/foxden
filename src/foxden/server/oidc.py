@@ -21,7 +21,7 @@ class HttpxPyJWKClient(jwt.PyJWKClient):
         super().__init__(uri, cache_keys=False, cache_jwk_set=False, headers=headers)
         self.client = client
 
-    def fetch_data(self) -> Any:  # noqa: ANN401
+    def fetch_data(self) -> Any:
         try:
             response = self.client.get(self.uri, headers=self.headers)
             response.raise_for_status()

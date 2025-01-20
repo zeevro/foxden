@@ -22,7 +22,7 @@ repos:
         files: ^src/
 
   - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
-    rev: v1.7.6.22
+    rev: v1.7.7.23
     hooks:
       - id: actionlint
         additional_dependencies: [pyflakes>=3.0.1]

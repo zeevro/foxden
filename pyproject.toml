@@ -26,6 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "annotated-types",
+    "cloudpathlib",
     "hishel",
     "msgspec",
     "packaging",
@@ -34,12 +35,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+s3 = ["cloudpathlib[s3]"]
 server = ["fastapi[standard]"]
 trusted = ["foxden[server]", "pyjwt[crypto]"]
 
 [dependency-groups]
 dev = [
-    "foxden[trusted]",
+    "foxden[s3,server,trusted]",
     "mypy",
     "pytest",
     "pytest-cov",
@@ -77,7 +79,7 @@ ignore = [
     # "FIX", # linter: flake8-fixme
 
     "E741", # ambiguous-variable-name
-    # "ANN401", # any-type
+    "ANN401", # any-type
     # "B905", # zip-without-explicit-strict
     "A005", # stdlib-module-shadowing
     # "G001", # logging-string-format
