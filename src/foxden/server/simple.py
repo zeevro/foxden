@@ -5,6 +5,7 @@ from urllib.parse import quote_plus
 from fastapi import Depends, Header, HTTPException, Query
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
+from starlette.status import HTTP_404_NOT_FOUND
 
 from foxden.config import settings
 from foxden.server import app
@@ -51,11 +52,11 @@ def project_index(project: str, response_params: Annotated[ReponseParams, Depend
     content_type, index_module = response_params
     files = settings.index_backend.files(project)
     if not files:
-        raise HTTPException(404)
-    return Response(index_module.generate_project_index(project, files, '/files/'), media_type=content_type)
+        raise HTTPException(HTTP_404_NOT_FOUND)
+    return Response(index_module.generate_project_index(project, files, f'{app.root_path}/_files/'), media_type=content_type)
 
 
 if hasattr(settings.index_backend, 'dir_path'):
-    app.mount('/files', StaticFiles(directory=settings.index_backend.dir_path, check_dir=False))
+    app.mount('/_files', StaticFiles(directory=settings.index_backend.dir_path, check_dir=False))
 else:
     raise NotImplementedError('No DB storage backend!!')  # TODO: Implement

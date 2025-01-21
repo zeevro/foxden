@@ -1,6 +1,4 @@
 from fastapi import FastAPI
-from fastapi.security import HTTPBasic
 
 
-app = FastAPI()
-security = HTTPBasic()
+app = FastAPI(docs_url='/_docs', redoc_url='/_redoc')

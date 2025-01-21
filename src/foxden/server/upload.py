@@ -3,22 +3,68 @@ from functools import cached_property
 import logging
 import shutil
 import tarfile
-from typing import TYPE_CHECKING, Annotated, Literal
+import time
+from typing import TYPE_CHECKING, Annotated, Any, Literal
+import uuid
 import zipfile
 
-from fastapi import Depends, Form, HTTPException, UploadFile
-from fastapi.security import HTTPBasicCredentials
+from fastapi import Body, Depends, Form, HTTPException, UploadFile
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import hishel
+import httpx
 import jwt
+import msgspec
 from packaging.metadata import Metadata
 from packaging.utils import canonicalize_name
 from pydantic import BaseModel, Field, RootModel, model_validator
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN
 
 from foxden.config import settings
 from foxden.models import Digest, DistFile
-from foxden.server import app, security
+from foxden.server import app
 
 
 logger = logging.getLogger(__name__)
+
+
+class HttpxPyJWKClient(jwt.PyJWKClient):
+    def __init__(self, client: httpx.Client, uri: str, headers: dict[str, Any] | None = None) -> None:
+        super().__init__(uri, cache_keys=False, cache_jwk_set=False, headers=headers)
+        self.client = client
+
+    def fetch_data(self) -> Any:
+        try:
+            response = self.client.get(self.uri, headers=self.headers)
+            response.raise_for_status()
+            return msgspec.json.decode(response.read())
+        except (httpx.HTTPError, TimeoutError, msgspec.DecodeError) as e:
+            raise jwt.PyJWKClientConnectionError(f'Fail to fetch data from the url, err: "{e}"') from e
+
+
+def custom_jwt_verifier(claims: dict[str, Any]) -> bool:  # TODO: Configuration (how?)
+    return bool(claims['repository_owner'] == 'perceptionpoint')
+
+
+@app.get('/_/oidc/audience')
+def oidc_audience() -> dict[Literal['audience'], str]:
+    return {'audience': settings.oidc_audience}
+
+
+@app.post('/_/oidc/mint-token')
+def oidc_mint_token(token: Annotated[str, Body(embed=True)]) -> dict[Literal['token'], str]:
+    issuer = jwt.decode(token, options={'verify_signature': False})['iss']
+    if issuer not in settings.oidc_trusted_issuers:
+        raise HTTPException(HTTP_403_FORBIDDEN)
+    with hishel.CacheClient() as client:
+        oidc_config = msgspec.json.decode(client.get(f'{issuer}/.well-known/openid-configuration').read())
+        jwks_client = HttpxPyJWKClient(client, oidc_config['jwks_uri'])
+        signing_key = jwks_client.get_signing_key_from_jwt(token)
+    claims = jwt.decode(token, key=signing_key, audience=settings.oidc_audience)
+    if not custom_jwt_verifier(claims):
+        raise HTTPException(HTTP_403_FORBIDDEN)
+    now = int(time.time())
+    mint_token = jwt.encode({'jti': str(uuid.uuid4()), 'aud': 'oidc', 'iat': now, 'nbf': now - 5, 'exp': now + 20}, settings.jwk)
+    return {'token': mint_token}
 
 
 class UploadRequestBase(BaseModel):
@@ -93,19 +139,19 @@ else:
 
 
 @app.post('/')
-def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCredentials, Depends(security)]) -> None:
+def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCredentials, Depends(HTTPBasic())]) -> None:
     if creds.username != '__token__':
-        raise HTTPException(401)
+        raise HTTPException(HTTP_403_FORBIDDEN)
     try:
         jwt.decode(creds.password, key=settings.jwk, audience=['oidc', 'login'])
     except jwt.InvalidTokenError:
         logger.warning('Token validation failed', exc_info=True)
-        raise HTTPException(401) from None
+        raise HTTPException(HTTP_403_FORBIDDEN) from None
 
     project = canonicalize_name(req.name)
 
     if not req.content.filename:
-        raise HTTPException(400, 'content filename cannot be empty')
+        raise HTTPException(HTTP_400_BAD_REQUEST, 'content filename cannot be empty')
 
     distfile = DistFile(
         req.content.filename,
@@ -121,7 +167,7 @@ def upload(req: Annotated[UploadRequest, Form()], creds: Annotated[HTTPBasicCred
         if pdf.filename == distfile.filename:
             if pdf.digest == distfile.digest:
                 return
-            raise HTTPException(400, f'File already exists ({pdf.filename!r}, with {pdf.digest.alg} hash {pdf.digest.digest}).')
+            raise HTTPException(HTTP_400_BAD_REQUEST, f'File already exists ({pdf.filename!r}, with {pdf.digest.alg} hash {pdf.digest.digest}).')
 
     file_path = settings.storage_path / distfile.filename
 

@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 import contextlib
 
 from foxden.backend.index import IndexBackend
@@ -18,6 +19,18 @@ class FilesIndexBackend(IndexBackend):
     def _index_path(self, project: str = '') -> AnyPath:
         return self.dir_path / project / self._index_filename
 
+    def _write_root_index(self, projects: Iterable[str]) -> None:
+        self._index_path().write_bytes(self._index_generator.generate_root_index(projects))
+
+    def _write_project_index(self, project: str, files: Iterable[DistFile]) -> None:
+        index_path = self._index_path(project)
+        content = self._index_generator.generate_project_index(project, files, '../')
+        try:
+            index_path.write_bytes(content)
+        except FileNotFoundError:
+            index_path.parent.mkdir(parents=True, exist_ok=True)
+            index_path.write_bytes(content)
+
     def _parse_root_index(self, index_path: AnyPath) -> list[str]:
         raise NotImplementedError
 
@@ -37,21 +50,28 @@ class FilesIndexBackend(IndexBackend):
             return []
 
     def new_file(self, project: str, file: DistFile) -> None:
-        project_files = self.files(project)
+        files = self.files(project)
         try:
-            insert_sorted_nodup(project_files, file)
+            insert_sorted_nodup(files, file)
         except DuplicateValueError:
             raise FileExistsError(f'{file.filename} already exists') from None
         project_index_path = self._index_path(project)
         project_index_path.parent.mkdir(parents=True, exist_ok=True)
-        project_index_path.write_bytes(self._index_generator.generate_project_index(project, project_files))
+        self._write_project_index(project, files)
         projects = self.list_projects()
         with contextlib.suppress(DuplicateValueError):
             insert_sorted_nodup(projects, project)
-            self._index_path().write_bytes(self._index_generator.generate_root_index(projects))
+            self._write_root_index(projects)
 
     def set_yanked(self, project: str, filename: str, yanked: bool = True) -> None:
-        raise NotImplementedError
+        files = self.files(project)
+        for distfile in files:
+            if distfile.filename == filename:
+                if distfile.yanked != yanked:
+                    distfile.yanked = yanked
+                    self._write_project_index(project, files)
+                return
+        raise FileNotFoundError(f'File {filename!r} does not exist')
 
 
 def combined_files_index_backends(primary_backend: type[FilesIndexBackend], *extra_backends: type[FilesIndexBackend]) -> type[FilesIndexBackend]:
