@@ -1,10 +1,9 @@
-import contextlib
 import html.parser
 
-from foxden.backend.index import IndexBackend, StaticFilesIndexBackendMixin
+from foxden.backend.index.files import FilesIndexBackend
 from foxden.models import Digest, DistFile
-from foxden.utils import DuplicateValueError, insert_sorted_nodup
-from foxden.utils.pep503 import generate_project_index, generate_root_index
+from foxden.types import AnyPath
+from foxden.utils import pep503
 
 
 class IndexParser[T](html.parser.HTMLParser):
@@ -45,32 +44,11 @@ class ProjectIndexParser(IndexParser[DistFile]):
         )
 
 
-class Pep503IndexBackend(IndexBackend, StaticFilesIndexBackendMixin):
-    def list_projects(self) -> list[str]:
-        try:
-            return RootIndexParser.get_links(self.index_path().read_text())
-        except FileNotFoundError:
-            return []
+class Pep503IndexBackend(FilesIndexBackend):
+    _index_generator = pep503
 
-    def files(self, project: str) -> list[DistFile]:
-        try:
-            return ProjectIndexParser.get_links(self.index_path(project).read_text())
-        except FileNotFoundError:
-            return []
+    def _parse_root_index(self, index_path: AnyPath) -> list[str]:
+        return RootIndexParser.get_links(index_path.read_text())
 
-    def new_file(self, project: str, file: DistFile) -> None:
-        project_files = self.files(project)
-        try:
-            insert_sorted_nodup(project_files, file)
-        except DuplicateValueError:
-            raise FileExistsError(f'{file.filename} already exists') from None
-        project_index_path = self.index_path(project)
-        project_index_path.parent.mkdir(parents=True, exist_ok=True)
-        project_index_path.write_text(generate_project_index(project, project_files))
-        projects = self.list_projects()
-        with contextlib.suppress(DuplicateValueError):
-            insert_sorted_nodup(projects, project)
-            self.index_path().write_text(generate_root_index(projects))
-
-    def set_yanked(self, project: str, filename: str, yanked: bool = True) -> None:
-        raise NotImplementedError
+    def _parse_project_index(self, index_path: AnyPath) -> list[DistFile]:
+        return ProjectIndexParser.get_links(index_path.read_text())

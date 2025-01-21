@@ -29,9 +29,9 @@ def _link(distfile: DistFile, prefix: str = '') -> str:
     return f'<a {attrs_html}>{distfile.filename}</a>'
 
 
-def generate_root_index(projects: Iterable[str]) -> str:
-    return INDEX_TEMPLATE.format(title='Simple index', content='\n'.join(f'<a href="{s}/">{s}</a><br/>' for s in projects))
+def generate_root_index(projects: Iterable[str]) -> bytes:
+    return INDEX_TEMPLATE.format(title='Simple index', content='\n'.join(f'<a href="{s}/">{s}</a><br/>' for s in projects)).encode()
 
 
-def generate_project_index(project: str, files: Iterable[DistFile], url_prefix: str = '') -> str:
-    return INDEX_TEMPLATE.format(title=f'Links for {project}', content='\n'.join(f'{_link(f, url_prefix)}<br/>' for f in files))
+def generate_project_index(project: str, files: Iterable[DistFile], url_prefix: str = '') -> bytes:
+    return INDEX_TEMPLATE.format(title=f'Links for {project}', content='\n'.join(f'{_link(f, url_prefix)}<br/>' for f in files)).encode()

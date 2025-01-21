@@ -9,7 +9,8 @@ import dotenv
 import jwt
 import msgspec
 
-from foxden.backend.index import CombinedIndexBackend, IndexBackend
+from foxden.backend.index import IndexBackend
+from foxden.backend.index.files import FilesIndexBackend, combined_files_index_backends
 from foxden.backend.index.pep503 import Pep503IndexBackend
 from foxden.backend.index.pep691 import Pep691IndexBackend
 from foxden.types import AnyPath
@@ -49,12 +50,12 @@ class Config(msgspec.Struct, rename='upper', dict=True, kw_only=True):
     @cached_property
     def index_backend(self) -> IndexBackend:
         if self.storage_backend == 'files':
-            d = {
-                'json': Pep691IndexBackend(self.storage_path),
-                'html': Pep503IndexBackend(self.storage_path),
+            d: dict[str, type[FilesIndexBackend]] = {
+                'html': Pep503IndexBackend,
+                'json': Pep691IndexBackend,
+                'both': combined_files_index_backends(Pep691IndexBackend, Pep503IndexBackend),
             }
-            d['both'] = CombinedIndexBackend(d['json'], d['html'])
-            return d[self.index_type]
+            return d[self.index_type](self.storage_path)
         if self.storage_backend == 'db':
             raise NotImplementedError
         raise ValueError(f'Invalid index backend {self.storage_backend!r}')

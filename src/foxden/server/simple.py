@@ -1,26 +1,18 @@
-from collections.abc import Iterable
 import contextlib
-from typing import Annotated, Literal, Protocol
-from urllib.parse import quote, quote_plus
+from typing import Annotated
+from urllib.parse import quote_plus
 
-from fastapi import Depends, Header, HTTPException, Query, Request
+from fastapi import Depends, Header, HTTPException, Query
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
 from foxden.config import settings
-from foxden.models import DistFile
 from foxden.server import app
-from foxden.utils import pep503, pep691
+from foxden.utils import IndexGenerator, pep503, pep691
 from foxden.utils.http import accepted_types
 
 
-class IndexResponseModule(Protocol):
-    def generate_root_index(self, projects: Iterable[str]) -> bytes | str: ...
-
-    def generate_project_index(self, project: str, files: Iterable[DistFile], url_prefix: str = '') -> bytes | str: ...
-
-
-INDEX_MODULE: dict[str, IndexResponseModule] = {
+INDEX_MODULE: dict[str, IndexGenerator] = {
     'application/vnd.pypi.simple.v1+json': pep691,
     'application/vnd.pypi.simple.v1+html': pep503,
     'text/html': pep503,
@@ -30,10 +22,12 @@ DEFAULT_CONTENT_TYPE: str = 'text/html'
 
 DEFAULT_INDEX_MODULE = INDEX_MODULE[DEFAULT_CONTENT_TYPE]
 
-type ReponseParams = tuple[str, IndexResponseModule]
+type ReponseParams = tuple[str, IndexGenerator]
 
 
-def response_params(accept_hdr: Annotated[str | None, Header(alias='accept')] = None, format_param: Annotated[str | None, Query(alias='format')] = None) -> ReponseParams:
+def response_params(
+    accept_hdr: Annotated[str | None, Header(alias='accept')] = None, format_param: Annotated[str | None, Query(alias='format')] = None
+) -> ReponseParams:
     if format_param:
         format_param_quoted = quote_plus(format_param, safe='/')
         if format_param_quoted in INDEX_MODULE:
@@ -42,7 +36,7 @@ def response_params(accept_hdr: Annotated[str | None, Header(alias='accept')] = 
         for i in accepted_types(accept_hdr):
             t = i.split(';', 1)[0]
             with contextlib.suppress(KeyError):
-                return t, INDEX_MODULE[t]  # type: ignore[index]
+                return t, INDEX_MODULE[t]
     return DEFAULT_CONTENT_TYPE, DEFAULT_INDEX_MODULE
 
 
