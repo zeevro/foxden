@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "foxden"
 version = "0.0.1a1"
 authors = [{ name = "Zeev Rotshtein", email = "zeevro@gmail.com" }]
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Framework :: FastAPI",
@@ -16,8 +16,6 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: System :: Archiving :: Packaging",
@@ -67,36 +65,27 @@ ignore = [
     "Q003", # avoidable-escaped-quote - conflicts with formatter
     "COM812", # missing-trailing-comma - conflicts with formatter
     "COM819", # prohibited-trailing-comma - conflicts with formatter
-    "ISC001", # single-line-implicit-string-concatenation - conflicts with formatter
-    "ISC002", # multi-line-implicit-string-concatenation - conflicts with formatter
     "E501", # line-too-long - see formatter documentation
 
-    # "C90", # linter: mccabe
-    "D", # linter: pydocstyle
     "FBT", # linter: flake8-boolean-trap
     "EM", # linter: flake8-errmsg
-    # "SLF", # linter: flake8-self
-    # "FIX", # linter: flake8-fixme
+    "FIX", # linter: flake8-fixme
+    "C90", # linter: mccabe
+    "D", # linter: pydocstyle
 
-    "E741", # ambiguous-variable-name
     "ANN401", # any-type
-    # "B905", # zip-without-explicit-strict
-    "A005", # stdlib-module-shadowing
-    # "G001", # logging-string-format
-    # "G002", # logging-percent-format
-    # "G003", # logging-string-concat
-    # "G004", # logging-f-string
+    "G004", # logging-f-string
     "TD002", # missing-todo-author
     "TD003", # missing-todo-link
-    # "PLR0904", # too-many-public-methods
-    # "PLR0911", # too-many-return-statements
-    # "PLR0912", # too-many-branches
-    # "PLR0913", # too-many-arguments
-    # "PLR0914", # too-many-locals
-    # "PLR0915", # too-many-statements
-    # "PLR0916", # too-many-boolean-expressions
-    # "PLR0917", # too-many-positional-arguments
-    # "PLR2004", # magic-value-comparison
+    "E741", # ambiguous-variable-name
+    "PLR0904", # too-many-public-methods
+    "PLR0911", # too-many-return-statements
+    "PLR0912", # too-many-branches
+    "PLR0913", # too-many-arguments
+    "PLR0914", # too-many-locals
+    "PLR0915", # too-many-statements
+    "PLR0916", # too-many-boolean-expressions
+    "PLR0917", # too-many-positional-arguments
     "TRY003", # raise-vanilla-args
 ]
 
